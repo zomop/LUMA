@@ -1,0 +1,104 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id String @id @default(cuid())
+  username String @unique
+  email String @unique
+  passwordHash String
+  displayName String
+  bio String @default("")
+  avatarUrl String?
+  level Int @default(1)
+  xp Int @default(0)
+  isVerified Boolean @default(false)
+  isDeveloper Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  posts Post[]
+  followers Follow[] @relation("followers")
+  following Follow[] @relation("following")
+  sentMessages Message[]
+  participants ConversationParticipant[]
+  badges UserBadge[]
+  scannerSessions ScannerSession[]
+}
+model Post {
+  id String @id @default(cuid())
+  authorId String
+  content String
+  imageUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+model Follow {
+  id String @id @default(cuid())
+  followerId String
+  followingId String
+  createdAt DateTime @default(now())
+  follower User @relation("following", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("followers", fields: [followingId], references: [id], onDelete: Cascade)
+  @@unique([followerId, followingId])
+}
+model Conversation {
+  id String @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  participants ConversationParticipant[]
+  messages Message[]
+}
+model ConversationParticipant {
+  conversationId String
+  userId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([conversationId, userId])
+}
+model Message {
+  id String @id @default(cuid())
+  conversationId String
+  senderId String
+  content String
+  createdAt DateTime @default(now())
+  readAt DateTime?
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+model Badge {
+  id String @id @default(cuid())
+  name String @unique
+  description String
+  icon String
+  rarity String
+  users UserBadge[]
+}
+model UserBadge {
+  id String @id @default(cuid())
+  userId String
+  badgeId String
+  awardedAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  @@unique([userId, badgeId])
+}
+model ScannerSession {
+  id String @id @default(cuid())
+  userId String
+  name String
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points ScannerPoint[]
+}
+model ScannerPoint {
+  id String @id @default(cuid())
+  scannerSessionId String
+  angle Float
+  distanceMm Float
+  session ScannerSession @relation(fields: [scannerSessionId], references: [id], onDelete: Cascade)
+}
